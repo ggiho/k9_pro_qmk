@@ -16,6 +16,9 @@
 
 #include QMK_KEYBOARD_H
 
+static uint16_t space_alt_timer;
+static bool alt_registered = false;
+
 enum layers{
     MAC_BASE,
     _FN1,
@@ -30,8 +33,44 @@ enum custom_keycodes {
     MC_CTRL_U,
     MC_CTRL_C,
     MC_CTRL_N,
-    MC_CTRL_P
+    MC_CTRL_P,
+    MC_CTRL_I,
+    MC_CTRL_O
 };
+
+enum {
+    TD_SPACE_ALT
+};
+
+void dance_space_alt(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        space_alt_timer = timer_read();
+        alt_registered = false;
+    }
+}
+
+void dance_space_alt_finished(tap_dance_state_t *state, void *user_data) {
+    if (state->count == 1) {
+        if (timer_elapsed(space_alt_timer) > 250) {
+            register_code(KC_LALT);
+            alt_registered = true;
+        } else {
+            tap_code(KC_SPC);
+        }
+    }
+}
+
+void dance_space_alt_reset(tap_dance_state_t *state, void *user_data) {
+    if (alt_registered) {
+        unregister_code(KC_LALT);
+        alt_registered = false;
+    }
+}
+
+tap_dance_action_t tap_dance_actions[] = {
+    [TD_SPACE_ALT] = ACTION_TAP_DANCE_FN_ADVANCED(dance_space_alt, dance_space_alt_finished, dance_space_alt_reset)
+};
+
 
 // 콤보 정의
 const uint16_t PROGMEM u_i_combo[] = {KC_U, KC_I, COMBO_END};
@@ -70,12 +109,12 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_TAB,   KC_Q,     KC_W,     KC_E,     KC_R,     KC_T,     KC_Y,     KC_U,     KC_I,     KC_O,     KC_P,     KC_LBRC,   KC_RBRC, KC_BSLS,
         MO(1),  KC_A,     KC_S,     KC_D,     KC_F,     KC_G,     KC_H,     KC_J,     KC_K,     KC_L,     KC_SCLN,  KC_QUOT,            KC_ENT,
         KC_LSFT,            KC_Z,     KC_X,     KC_C,     KC_V,     KC_B,     KC_N,     KC_M,     KC_COMM,  KC_DOT,   KC_SLSH,            KC_RSFT,
-        KC_LCTL,  KC_LOPTN, KC_LCMMD,                               KC_SPC,                                 KC_F18,MO(L_FN1),KC_LEFT,KC_RGHT),
+        KC_LCTL,  KC_LOPTN, KC_LCMMD,                               TD(TD_SPACE_ALT),                                 KC_F18,MO(L_FN1),KC_LEFT,KC_RGHT),
 
     [_FN1] = LAYOUT_61_ansi(
         KC_GRAVE,   KC_1,     KC_2,     KC_3,     KC_4,     KC_5,     KC_6,     KC_7,     KC_8,     KC_9,     KC_0,     KC_MINS,  KC_EQL,   KC_BSPC,
-        KC_TAB,   KC_Q,     KC_W,     KC_E,     KC_R,     KC_T,     KC_Y,     MC_CTRL_U,     KC_I,     KC_O,     MC_CTRL_P,     KC_LBRC,  KC_RBRC,  KC_BSLS,
-        KC_CAPS,  MC_CTRL_A,     KC_S,     MC_CTRL_D,     KC_LSFT,     KC_HOME,     KC_LEFT,     KC_DOWN,     KC_UP,     KC_RGHT,     KC_END,  KC_QUOT,            KC_ENT,
+        KC_TAB,   KC_Q,     KC_W,     KC_E,     KC_R,     KC_T,     KC_Y,     MC_CTRL_U,     MC_CTRL_I,     MC_CTRL_O,     MC_CTRL_P,     KC_LBRC,  KC_RBRC,  KC_BSLS,
+        KC_CAPS,  MC_CTRL_A,     KC_LALT,     MC_CTRL_D,     KC_LSFT,     KC_HOME,     KC_LEFT,     KC_DOWN,     KC_UP,     KC_RGHT,     KC_END,  KC_QUOT,            KC_ENT,
         KC_LSFT,            KC_Z,     KC_X,     MC_CTRL_C,     KC_V,     KC_B,     MC_CTRL_N,     KC_M,     KC_COMM,  KC_DOT,   KC_SLSH,            KC_RSFT,
         KC_LCTL,  KC_LALT,  KC_LGUI,                                KC_SPC,                                 KC_RALT, MO(WIN_FN),MO(L_FN1),KC_RCTL),
 
@@ -119,6 +158,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
         case MC_CTRL_U:
             tap_code16(C(KC_U));
+            return false;
+        case MC_CTRL_I:
+            tap_code16(C(KC_I));
+            return false;
+        case MC_CTRL_O:
+            tap_code16(C(KC_O));
             return false;
         case MC_CTRL_P:
             tap_code16(C(KC_LEFT));
